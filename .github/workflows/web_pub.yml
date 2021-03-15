@@ -1,0 +1,49 @@
+name: Flutter Web CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      my_secret: ${{secrets.COMMIT_SECRET}}
+    steps:
+    - uses: actions/checkout@v1
+    - uses: subosito/flutter-action@v1
+      with:
+        channel: beta
+    - run: flutter config --enable-web
+    - run: flutter pub get
+#     - run: flutter test
+    - run: flutter build web --release
+    - name: Archive Production Artifact
+      uses: actions/upload-artifact@master
+      with:
+        name: web-build
+        path: build/web
+    - name: Download Artifact
+      uses: actions/download-artifact@master
+      with:
+        name: web-build 
+    - name: Display structure of build files
+      run: ls -R
+      working-directory: ./web
+    - name: Deploy to GH Pages
+      run: |
+        cd build/web
+        git init
+        # type configurations: your user.email and user.name followed lines 
+        # git config --global user.email your_email 
+        # git config --global user.name your_name 
+        git config --global user.email dr.coton@gmail.com
+        git config --global user.name dr-coton
+        git status
+        git remote add origin https://${{secrets.COMMIT_SECRET}}@github.com/dr-coton/netflix_clone.git 
+        git checkout -b gh-pages
+        git add --all
+        git commit -m "<publish>: Publish Web"
+        git push origin gh-pages -f
